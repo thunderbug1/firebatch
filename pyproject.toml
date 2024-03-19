@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "firebatch"
-version = "0.1.1"
+version = "0.1.2"
 description = "A CLI and library for Firestore batch operations"
 authors = ["Alexander Balasch"]
 license = "MIT"
