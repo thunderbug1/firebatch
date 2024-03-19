@@ -1,0 +1,25 @@
+[tool.poetry]
+name = "firebatch"
+version = "0.1.0"
+description = "A CLI and library for Firestore batch operations"
+authors = ["Alexander Balasch"]
+license = "MIT"
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.12"
+google-cloud-firestore = "^2.15.0"
+click = "^8.1.7"
+tqdm = "^4.66.2"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^8.1.1"
+
+
+[tool.poetry.group.extras.dependencies]
+pydantic = "^2.6.4"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
