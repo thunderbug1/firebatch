@@ -131,3 +131,6 @@ def delete(collection: str, doc_ids: Optional[str], file: Optional[click.File], 
         delete_documents_in_firestore(collection, doc_ids, verbose, dry_run)
     else:
         raise click.UsageError("You must provide either document IDs or a file.")
+
+if __name__ == '__main__':
+    cli()
