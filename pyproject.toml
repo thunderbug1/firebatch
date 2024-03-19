@@ -4,7 +4,7 @@ version = "0.1.0"
 description = "A CLI and library for Firestore batch operations"
 authors = ["Alexander Balasch"]
 license = "MIT"
-readme = "README.md"
+readme = "Readme.md"
 
 [tool.poetry.dependencies]
 python = "^3.12"
