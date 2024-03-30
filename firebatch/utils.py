@@ -5,24 +5,32 @@ from google.cloud.firestore import Client
 import logging
 logger = logging.getLogger(__name__)
 
-def detect_file_format(file : TextIO) -> str:
-    # Auto-detect file format
-    if isinstance(file, str):
+def detect_file_format(file: TextIO):
+    # Read a reasonable amount of data to guess the file format
+    first_chunk = file.read(1024)
+    file.seek(0)  # Reset file pointer to the start for re-reading
+
+    # Try to detect if it's a JSONL file
+    if first_chunk.strip().startswith('{') and "\n" in first_chunk:
+        # Check if each line is a valid JSON
+        for line in first_chunk.splitlines():
+            try:
+                json.loads(line)
+            except json.JSONDecodeError:
+                break
+        else:
+            # If all lines in the first chunk are valid JSON, it's likely a JSONL file
+            return 'jsonl'
+
+    # Try to parse the chunk as JSON
+    try:
+        json.loads(first_chunk)
         return 'json'
-    else:
-        return 'jsonl'
+    except json.JSONDecodeError:
+        pass
 
-    # first_line = file.readline()
-    # try:
-    #     # Try to parse the first line as JSON
-    #     json.loads(first_line)
-    #     input_format = 'jsonl'  # Successfully parsed a single line as JSON
-    # except json.JSONDecodeError:
-    #     input_format = 'json'  # If it fails, assume the whole file is a single JSON array
-
-    # # Since we read the first line to detect the format, we need to ensure it's not lost
-    # file.seek(0)  # Reset file pointer to the start for re-reading
-    # return input_format
+    # Default to unknown if no format matches
+    return 'unknown'
 
 def get_nested_collection_reference(db: Client, collection_path: str):
     # Splits the collection path and returns the final reference
