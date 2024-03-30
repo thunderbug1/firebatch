@@ -44,14 +44,14 @@ def get_nested_collection_reference(db: Client, collection_path: str):
     return ref
 
 def parse_query_condition(condition: str) -> Tuple[str, str, Any]:
-    """Parses a query condition, allowing spaces around operators."""
+    """Parses a query condition, allowing spaces around operators and handling quoted strings as values."""
+    logger.debug(f"Evaluating condition: {condition}")
     # List of Firestore operators for pattern matching
-    logger.debug(f"evaluate condition: {condition}")
     operators = [">=", "<=", "==", "!=", ">", "<", "array-contains", "in", "array-contains-any"]
     
     # Create a regex pattern to match any operator from the list, allowing spaces around it
     operators_regex = '|'.join([re.escape(op) for op in operators])
-    pattern = rf'([^:]+)\s*({operators_regex})\s*(.+)'
+    pattern = rf'([^:]+?)\s*({operators_regex})\s*(.+)'  # Non-greedy match for the field
     
     match = re.match(pattern, condition)
     if not match:
@@ -59,14 +59,19 @@ def parse_query_condition(condition: str) -> Tuple[str, str, Any]:
     
     field, operator, value = match.groups()
     field = field.strip()
-    # Convert value from string to correct type (int, float, bool, etc.)
-    if value.isdigit():
-        value = int(value)
-    elif value.replace('.', '', 1).isdigit():
-        value = float(value)
-    elif value.lower() in ['true', 'false']:
-        value = value.lower() == 'true'
-    # Add more conversions as necessary, e.g., for dates or arrays
+
+    # Handle quoted string values
+    if (value.startswith('"') and value.endswith('"')) or (value.startswith("'") and value.endswith("'")):
+        value = value[1:-1]  # Strip the quotes
+    else:
+        # Convert value from string to correct type (int, float, bool, etc.)
+        if value.isdigit():
+            value = int(value)
+        elif re.match(r'^-?\d+(\.\d+)?$', value):  # Matches float numbers
+            value = float(value)
+        elif value.lower() in ['true', 'false']:
+            value = value.lower() == 'true'
+        # Add additional type conversions as necessary, e.g., for dates or arrays
     
     return field, operator, value
 
