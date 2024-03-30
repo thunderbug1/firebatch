@@ -5,41 +5,40 @@ from google.cloud.firestore import Client
 import logging
 logger = logging.getLogger(__name__)
 
-def detect_file_format(file: TextIO):
-    # Read the first 5 lines or until the file ends
-    lines = [file.readline() for _ in range(5)]
-    file.seek(0)  # Reset file pointer to the start for re-reading
+def read_documents(file: TextIO, format="auto"):
+    """ Reads the firestore documents from either a json or a jsonl file. 
+        The json file may be formatted as a list of firestore documents or as a single firestore document."""
+    # Try to parse the entire file as JSON
+    def read_json(file: TextIO):
+        file.seek(0)  # Ensure we start at the beginning
+        data = json.load(file)
+        if isinstance(data, list):
+            return data
+        return [data] # if it is just one object, wrap it as a list
+    
+    def read_jsonl(file: TextIO):
+        file.seek(0)  # Reset the file position to the beginning
+        data = []
+        for line in file:
+            sripped_line = line.strip()
+            if sripped_line:  # Only consider non-empty lines
+                data.append(json.loads(sripped_line))  # Attempt to parse line as JSON
+        return data  # Assume JSONL if no exceptions were raised for non-empty lines
 
-    # Remove empty lines that could occur if the file has fewer than 5 lines
-    lines = [line for line in lines if line.strip()]
-
-    # If there are no lines, we cannot determine the format
-    if not lines:
-        raise Exception("File is empty or does not contain readable content.")
-
-    # Try to detect if it's a JSONL file by checking if each of the first 5 lines is a valid JSON
-    is_jsonl = True
-    for line in lines:
+    if format == "auto":
         try:
-            json.loads(line)
+            return read_json(file)
         except json.JSONDecodeError:
-            is_jsonl = False
-            break
-
-    if is_jsonl:
-        return 'jsonl'
-
-    # If not JSONL, try to parse the combined lines as JSON
-    combined_lines = ''.join(lines)
-    try:
-        json.loads(combined_lines)
-        return 'json'
-    except json.JSONDecodeError:
-        pass
-
-    # Default to unknown if no format matches
-    raise Exception("Unknown file format, could not detect either JSON or JSONL.")
-
+            # If JSON parsing fails, proceed to check for JSONL
+            try:
+                return read_jsonl(file)
+            except json.JSONDecodeError:
+                raise Exception("Unknown file format, could not detect either JSON or JSONL.")
+    elif format == "json":
+        return read_json(file)
+    elif format == "jsonl":
+        return read_jsonl(file)
+    
 def get_nested_collection_reference(db: Client, collection_path: str):
     # Splits the collection path and returns the final reference
     ref = db

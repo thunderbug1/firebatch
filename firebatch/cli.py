@@ -6,7 +6,7 @@ import importlib
 import logging
 from firebatch.operations import download_collection_documents, write_documents, delete_documents_in_firestore 
 from firebatch.operations import process_deletion_file, update_documents_in_firestore, list_firestore_collections
-from firebatch.utils import detect_file_format, validate_queries
+from firebatch.utils import read_documents, validate_queries
 
 try:
     from pydantic import ValidationError
@@ -124,11 +124,7 @@ def write(collection, file, timestamp_field, timestamp_convert, geopoint_convert
 @click.option('--geopoint-convert', '-g', is_flag=True, help='auto detect geopoints (map with only longitude and latitude) and convert them to firebase GeoPoint type.')
 @click.argument('file', type=click.File('r'), required=True)
 def update(collection, validator, file, timestamp_field, timestamp_convert, geopoint_convert, upsert, verbose, dry_run):
-    input_format = detect_file_format(file)
-    if input_format == 'json':
-        updates = json.load(file)
-    else:
-        updates = [json.loads(line) for line in file]
+    updates = read_documents(file)
 
     # Optional: Validate each update data using Pydantic if validator is provided
     if validator:
@@ -152,8 +148,8 @@ def delete(collection: str, doc_ids: Optional[str], file: Optional[click.File], 
         id_list = [doc_id.strip() for doc_id in doc_ids.split(' ') if doc_id.strip()]
         delete_documents_in_firestore(collection, id_list, verbose, dry_run)
     elif file:
-        input_format = detect_file_format(file)
-        doc_ids = process_deletion_file(file, input_format)
+        documents = read_documents(file)
+        doc_ids = process_deletion_file(documents)
         delete_documents_in_firestore(collection, doc_ids, verbose, dry_run)
     else:
         raise click.UsageError("You must provide either document IDs or a file.")
