@@ -93,20 +93,42 @@ def write_documents(collection_path: str,
 
     print_verbose(f"Uploaded {total_documents} documents to '{collection_path}'.", verbose)
 
+def delete_collection_recursive(collection_ref, batch_size=10):
+    """Delete all documents within a collection, including documents in subcollections."""
+    while True:
+        # Retrieve a small batch of documents to avoid consuming too much memory
+        docs = collection_ref.limit(batch_size).stream()
+        deleted = 0
 
-def delete_documents_in_firestore(collection_path: str, 
-                                  doc_ids: List[str], 
-                                  verbose: bool = False, 
-                                  dry_run: bool = False):
+        for doc in docs:
+            # Recursively delete subcollections
+            for subcollection in doc.reference.collections():
+                delete_collection_recursive(subcollection, batch_size=batch_size)
+
+            doc.reference.delete()  # Delete the document itself
+            deleted += 1
+
+        if deleted == 0:
+            break  # All documents have been deleted
+
+def delete_documents_in_firestore(collection_path: str, doc_ids: List[str], verbose: bool = False, dry_run: bool = False):
     db = initialize_firestore_client()
     collection_ref = get_nested_collection_reference(db, collection_path)
-    
+
     with tqdm(total=len(doc_ids), disable=not verbose, desc="Deleting documents") as pbar:
         for doc_id in doc_ids:
+            doc_ref = collection_ref.document(doc_id)
+
+            # First, delete subcollections recursively
             if not dry_run:
-                collection_ref.document(doc_id).delete()
+                for subcollection in doc_ref.collections():
+                    delete_collection_recursive(subcollection)
+
+                # Then delete the document itself
+                doc_ref.delete()
+
             if verbose:
-                print(f"Deleted document with ID '{doc_id}' from '{collection_path}'.")
+                print(f"Deleted document with ID '{doc_id}' from '{collection_path}', including its subcollections.")
             pbar.update(1)
 
 def process_deletion_file(file: TextIO, input_format: str) -> List[str]:
