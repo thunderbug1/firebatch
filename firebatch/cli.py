@@ -4,8 +4,8 @@ import sys
 import json
 import importlib
 import logging
-from firebatch.operations import download_collection_documents, write_documents, delete_documents_in_firestore
-from firebatch.operations import process_deletion_file, update_documents_in_firestore
+from firebatch.operations import download_collection_documents, write_documents, delete_documents_in_firestore 
+from firebatch.operations import process_deletion_file, update_documents_in_firestore, list_firestore_collections
 from firebatch.utils import detect_file_format, validate_queries
 
 try:
@@ -157,6 +157,19 @@ def delete(collection: str, doc_ids: Optional[str], file: Optional[click.File], 
         delete_documents_in_firestore(collection, doc_ids, verbose, dry_run)
     else:
         raise click.UsageError("You must provide either document IDs or a file.")
+
+@cli.command()
+def list():
+    """Lists all Firestore collections."""
+
+    collections = list_firestore_collections()
+    
+    for collection in collections:
+        try:
+            # The collection name can be accessed via collection.id
+            click.echo(collection.id)
+        except Exception as e:
+            logging.error(f"An error occurred while retrieving collection names: {e}")
 
 if __name__ == '__main__':
     cli()

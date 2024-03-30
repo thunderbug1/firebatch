@@ -176,3 +176,8 @@ def update_documents_in_firestore(collection_path: str,
 
         if verbose:
             logging.info(f"Batch updated {pbar.n} documents in '{collection_path}'.")
+
+def list_firestore_collections():
+    db = initialize_firestore_client()  # Make sure this function returns a Firestore client instance.
+    collections = db.collections()
+    return collections
