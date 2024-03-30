@@ -89,6 +89,7 @@ firebatch [OPTIONS] COMMAND [ARGS]...
 @click.option('--order-by', help='Field to order the results by.')
 @click.option('--limit', type=int, help='Limit the number of results.')
 def read(collection, format, timestamp_convert, geopoint_convert, where, order_by, limit, verbose, raw, dry_run):
+    """read documents from firestore and print them. By default it wraps every document with its id (needed by other commands). If the --raw flag is used then the documents are not wrapped."""
     read_documents = download_collection_documents(collection_path=collection, 
                                                    output_format=format,
                                                    timestamp_convert=timestamp_convert,
@@ -107,6 +108,7 @@ def read(collection, format, timestamp_convert, geopoint_convert, where, order_b
 @click.option('--geopoint-convert', '-g', is_flag=True, help='auto detect geopoints (map with only longitude and latitude) and convert them to firebase GeoPoint type.')
 @click.argument('file', type=click.File('r'), required=True)
 def write(collection, file, timestamp_field, timestamp_convert, geopoint_convert, format, verbose, dry_run):
+    """write the documents from the file to firestore. If the documents are in raw mode then they will be inserted with auto generated ids."""
     write_documents(collection_path=collection, 
                     file=file, 
                     timestamp_field=timestamp_field, 
@@ -124,6 +126,7 @@ def write(collection, file, timestamp_field, timestamp_convert, geopoint_convert
 @click.option('--geopoint-convert', '-g', is_flag=True, help='auto detect geopoints (map with only longitude and latitude) and convert them to firebase GeoPoint type.')
 @click.argument('file', type=click.File('r'), required=True)
 def update(collection, validator, file, timestamp_field, timestamp_convert, geopoint_convert, upsert, verbose, dry_run):
+    """update all documents with the data in the file. Requires the file NOT to be in raw mode (to contain the document ids)."""
     updates = read_documents(file)
 
     # Optional: Validate each update data using Pydantic if validator is provided
@@ -144,6 +147,8 @@ def update(collection, validator, file, timestamp_field, timestamp_convert, geop
 @click.option('--doc-ids', default=None, help='whitespace separated document IDs to delete. If provided, file is ignored.')
 @click.argument('file', type=click.File('r'), required=False)
 def delete(collection: str, doc_ids: Optional[str], file: Optional[click.File], verbose: bool, dry_run: bool):
+    """delete all documents with the document ids of the documents in the file."""
+
     if doc_ids:
         id_list = [doc_id.strip() for doc_id in doc_ids.split(' ') if doc_id.strip()]
         delete_documents_in_firestore(collection, id_list, verbose, dry_run)
@@ -156,7 +161,7 @@ def delete(collection: str, doc_ids: Optional[str], file: Optional[click.File], 
 
 @cli.command()
 def list():
-    """Lists all Firestore collections."""
+    """Lists all top level Firestore collections."""
 
     collections = list_firestore_collections()
     
