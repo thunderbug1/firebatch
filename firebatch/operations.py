@@ -69,6 +69,8 @@ def write_documents(collection_path: str,
 
     with tqdm(total=total_documents, desc=f"Uploading documents to {collection_path}", disable=not verbose) as pbar:
         for doc in documents:
+            if doc == "":
+                continue # skip empty lines
             data = json.loads(doc) if format == 'jsonl' else doc
             if "__doc_id__" in data and "__data__" in data:
                 doc_id = data["__doc_id__"]
