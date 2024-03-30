@@ -6,31 +6,39 @@ import logging
 logger = logging.getLogger(__name__)
 
 def detect_file_format(file: TextIO):
-    # Read a reasonable amount of data to guess the file format
-    first_chunk = file.read(1024)
+    # Read the first 5 lines or until the file ends
+    lines = [file.readline() for _ in range(5)]
     file.seek(0)  # Reset file pointer to the start for re-reading
 
-    # Try to detect if it's a JSONL file
-    if first_chunk.strip().startswith('{') and "\n" in first_chunk:
-        # Check if each line is a valid JSON
-        for line in first_chunk.splitlines():
-            try:
-                json.loads(line)
-            except json.JSONDecodeError:
-                break
-        else:
-            # If all lines in the first chunk are valid JSON, it's likely a JSONL file
-            return 'jsonl'
+    # Remove empty lines that could occur if the file has fewer than 5 lines
+    lines = [line for line in lines if line.strip()]
 
-    # Try to parse the chunk as JSON
+    # If there are no lines, we cannot determine the format
+    if not lines:
+        raise Exception("File is empty or does not contain readable content.")
+
+    # Try to detect if it's a JSONL file by checking if each of the first 5 lines is a valid JSON
+    is_jsonl = True
+    for line in lines:
+        try:
+            json.loads(line)
+        except json.JSONDecodeError:
+            is_jsonl = False
+            break
+
+    if is_jsonl:
+        return 'jsonl'
+
+    # If not JSONL, try to parse the combined lines as JSON
+    combined_lines = ''.join(lines)
     try:
-        json.loads(first_chunk)
+        json.loads(combined_lines)
         return 'json'
     except json.JSONDecodeError:
         pass
 
     # Default to unknown if no format matches
-    return 'unknown'
+    raise Exception("Unknown file format, could not detect either JSON or JSONL.")
 
 def get_nested_collection_reference(db: Client, collection_path: str):
     # Splits the collection path and returns the final reference
