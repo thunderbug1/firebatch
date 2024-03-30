@@ -82,14 +82,17 @@ firebatch [OPTIONS] COMMAND [ARGS]...
 
 @cli.command(cls=StdCommand)
 @click.option('--format', '-f', type=click.Choice(['json', 'jsonl']), default='jsonl', help='Output format for reading documents.')
+@click.option('--timestamp-convert', '-t', is_flag=True, help='convert firestore timestamps to simple datetime string in isoformat, otherwise the value will be wrapped with the key __timestamp__ for converting it back when writing.')
+@click.option('--geopoint-convert', '-g', is_flag=True, help='convert geopoints to simple map with longitude and latitude, otherwise the values will be wrapped with the key __geopoint__ for converting it back when writing.')
 @click.option('--raw', is_flag=True, default=False, help='disable the document ids in the output json and only output the data.')
-@click.option('--collection', '-c', required=True, help='Firestore collection path (e.g., "users/user_id/orders").')
 @click.option('--where', '-w', multiple=True, callback=validate_queries, help='Query conditions (can specify multiple), formatted as "field operator value".')
 @click.option('--order-by', help='Field to order the results by.')
 @click.option('--limit', type=int, help='Limit the number of results.')
-def read(collection, format, where, order_by, limit, verbose, raw, dry_run):
+def read(collection, format, timestamp_convert, geopoint_convert, where, order_by, limit, verbose, raw, dry_run):
     read_documents = download_collection_documents(collection_path=collection, 
                                                    output_format=format,
+                                                   timestamp_convert=timestamp_convert,
+                                                   geopoint_convert=geopoint_convert,
                                                    conditions=where,
                                                    order_by=order_by,
                                                    limit=limit, 
@@ -100,16 +103,27 @@ def read(collection, format, where, order_by, limit, verbose, raw, dry_run):
 @cli.command(cls=StdCommand)
 @click.option('--timestamp-field', default=None, help='name of the field to set a server timestamp of insertion.')
 @click.option('--format', type=click.Choice(['json', 'jsonl', 'auto']), default="auto", help='name of the field to set a server timestamp of insertion.')
+@click.option('--timestamp-convert', '-t', is_flag=True, help='auto detect timestamps (datetime string in isoformat) and convert them to firebase Timestamp type.')
+@click.option('--geopoint-convert', '-g', is_flag=True, help='auto detect geopoints (map with only longitude and latitude) and convert them to firebase GeoPoint type.')
 @click.argument('file', type=click.File('r'), required=True)
-def write(collection, file, timestamp_field, format, verbose, dry_run):
-    write_documents(collection_path=collection, file=file, timestamp_field=timestamp_field, format=format, verbose=verbose, dry_run=dry_run)
+def write(collection, file, timestamp_field, timestamp_convert, geopoint_convert, format, verbose, dry_run):
+    write_documents(collection_path=collection, 
+                    file=file, 
+                    timestamp_field=timestamp_field, 
+                    timestamp_convert=timestamp_convert,
+                    geopoint_convert=geopoint_convert,
+                    format=format, 
+                    verbose=verbose, 
+                    dry_run=dry_run)
 
 @cli.command(cls=StdCommand)
 @click.option('--validator', help='Validator module and class name (e.g., "my_validators:MyValidatorClass").')
 @click.option('--upsert', is_flag=True, default=False, help='if true, inserts documents if they do not exist')
 @click.option('--timestamp-field', default=None, help='Name of the field to set a server timestamp of update.')
+@click.option('--timestamp-convert', '-t', is_flag=True, help='auto detect timestamps (datetime string in isoformat) and convert them to firebase Timestamp type.')
+@click.option('--geopoint-convert', '-g', is_flag=True, help='auto detect geopoints (map with only longitude and latitude) and convert them to firebase GeoPoint type.')
 @click.argument('file', type=click.File('r'), required=True)
-def update(collection, validator, file, timestamp_field, upsert, verbose, dry_run):
+def update(collection, validator, file, timestamp_field, timestamp_convert, geopoint_convert, upsert, verbose, dry_run):
     input_format = detect_file_format(file)
     if input_format == 'json':
         updates = json.load(file)
@@ -121,7 +135,14 @@ def update(collection, validator, file, timestamp_field, upsert, verbose, dry_ru
         validator_class = load_validator(validator)
         updates = [validate_data(json.dumps(update), validator_class) for update in updates]
 
-    update_documents_in_firestore(collection_path=collection, updates=updates, timestamp_field=timestamp_field, upsert=upsert, verbose=verbose, dry_run=dry_run)
+    update_documents_in_firestore(collection_path=collection, 
+                                  updates=updates, 
+                                  timestamp_field=timestamp_field,
+                                  timestamp_convert=timestamp_convert,
+                                  geopoint_convert=geopoint_convert,
+                                  upsert=upsert, 
+                                  verbose=verbose, 
+                                  dry_run=dry_run)
 
 @cli.command(cls=StdCommand)
 @click.option('--doc-ids', default=None, help='whitespace separated document IDs to delete. If provided, file is ignored.')

@@ -1,4 +1,5 @@
 import json
+import sys
 from typing import Any, Dict, List, Optional, TextIO, Tuple
 from tqdm import tqdm
 
@@ -16,6 +17,8 @@ def print_verbose(message: str, verbose: bool):
 
 def download_collection_documents(collection_path: str, 
                                   output_format: str = 'jsonl', 
+                                  timestamp_convert: bool = False, 
+                                  geopoint_convert: bool = False,
                                   raw : bool = False, 
                                   conditions: List[Tuple[str, str, Any]] = [], 
                                   order_by: Optional[str] = None, 
@@ -42,13 +45,15 @@ def download_collection_documents(collection_path: str,
     print_verbose(f"Retrieved {len(documents)} documents from '{collection_path}'.", verbose)
     
     if output_format == 'json':
-        return to_json(documents, indent=2)
+        return to_json(documents, 2, timestamp_convert, geopoint_convert)
     elif output_format == 'jsonl':
-        return '\n'.join(to_json(doc) for doc in documents)  # One JSON document per line
+        return '\n'.join(to_json(doc, None, timestamp_convert, geopoint_convert) for doc in documents)  # One JSON document per line
 
 def write_documents(collection_path: str, 
                     file: TextIO, 
                     timestamp_field: str = None, 
+                    timestamp_convert: bool = False, 
+                    geopoint_convert: bool = False,
                     format: str="auto",
                     verbose: bool = False, 
                     dry_run: bool = False):
@@ -67,10 +72,10 @@ def write_documents(collection_path: str,
             data = json.loads(doc) if format == 'jsonl' else doc
             if "__doc_id__" in data and "__data__" in data:
                 doc_id = data["__doc_id__"]
-                data = convert_to_firestore_types(db, data["__data__"])
+                data = convert_to_firestore_types(db, data["__data__"], timestamp_convert, geopoint_convert)
             else:
                 doc_id = None
-                data = convert_to_firestore_types(db, data)
+                data = convert_to_firestore_types(db, data, timestamp_convert, geopoint_convert)
             if timestamp_field:
                 data[timestamp_field] = SERVER_TIMESTAMP
             doc_ref = collection_ref.document(doc_id)  # Auto-generate document ID if None
@@ -118,12 +123,29 @@ def process_deletion_file(file: TextIO, input_format: str) -> List[str]:
 def update_documents_in_firestore(collection_path: str, 
                                   updates: List[dict], 
                                   timestamp_field: Optional[str] = None, 
+                                  timestamp_convert: bool = False, 
+                                  geopoint_convert: bool = False,
                                   upsert: bool = False,
                                   verbose: bool = False, 
                                   dry_run: bool = False):
     db = initialize_firestore_client()
     batch = db.batch()
     collection_ref = get_nested_collection_reference(db, collection_path)
+
+    # First, check for duplicate keys in the updates
+    seen_doc_ids = set()
+    duplicates = set()
+    for update in updates:
+        doc_id = update.get("__doc_id__")
+        if doc_id:
+            if doc_id in seen_doc_ids:
+                duplicates.add(doc_id)
+            else:
+                seen_doc_ids.add(doc_id)
+
+    if duplicates:
+        sys.stderr.write(f"Error duplicate keys: {duplicates}")
+        sys.exit(1)
 
     with tqdm(total=len(updates), desc="Updating documents", disable=not verbose) as pbar:
         for update in updates:
@@ -132,7 +154,7 @@ def update_documents_in_firestore(collection_path: str,
             if not doc_id or not data:
                 continue  # Skip if no document ID or data
 
-            data = convert_to_firestore_types(db, data) 
+            data = convert_to_firestore_types(db, data, timestamp_convert, geopoint_convert) 
 
             if timestamp_field:
                 data[timestamp_field] = SERVER_TIMESTAMP
