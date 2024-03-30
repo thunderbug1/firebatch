@@ -72,7 +72,12 @@ def validate_data(data, validator_class):
 
 @click.group()
 def cli():
-    """Firebatch CLI group."""
+    """Overview:
+The Firebatch CLI is a command-line interface tool designed for batch operations on Google Firestore databases. It supports various operations such as reading, writing, updating, and deleting Firestore documents, with additional functionalities to handle Firestore specific data types like timestamps and geopoints. It's built to handle operations in bulk, making it ideal for migrations, backups, and batch modifications.
+
+Usage:
+firebatch [OPTIONS] COMMAND [ARGS]...
+"""
     pass
 
 @cli.command(cls=StdCommand)
