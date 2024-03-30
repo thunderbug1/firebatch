@@ -1,29 +1,30 @@
 # Firebatch
 
-Firebatch is a powerful and versatile command-line interface (CLI) tool designed for batch CRUD (Create, Read, Update, Delete) operations on Firestore collections. It supports various operations like downloading documents, writing to collections, deleting documents, and updating existing records in batch modes.
+Firebatch is a command-line interface (CLI) tool designed for batch CRUD (Create, Read, Update, Delete) operations on Firestore collections. It provides extensive support for downloading documents, batch uploading, deleting documents, updating records, and more, with advanced features such as data validation, conversion of Firestore specific types, and handling of subcollections.
 
 ## Features
 
-- **Read/Download**: Fetch documents from a Firestore collection with optional query conditions, ordering, and limits.
-- **Write**: Batch upload documents to a Firestore collection, with support for server timestamps.
-- **Update**: Perform batch updates on documents in a Firestore collection with optional upsert functionality.
-- **Delete**: Batch delete documents by document IDs from a Firestore collection.
-- **Validation**: Validate documents using custom Pydantic models before writing or updating.
-- **Verbose and Dry Run Modes**: Provide detailed logs of operations and allow simulation of write operations without affecting the database.
-- **Flexible Input Formats**: Accept data in both JSON and JSONL formats for batch operations.
-- **Raw Mode**: Retrieve or write documents without wrapping them in metadata such as document IDs, providing raw document data.
+- **Read/Download**: Fetch documents with optional query conditions, ordering, and limits. Supports raw mode and conversion for Firestore timestamps and geopoints.
+- **Write**: Batch upload with support for server timestamps, automatic format detection, and conversion for Firestore timestamps and geopoints.
+- **Update**: Batch updates with optional upsert functionality. Supports validation using custom Pydantic models.
+- **Delete**: Batch delete documents, including recursive deletion of subcollections.
+- **Validation**: Optionally validate documents using Pydantic models before writing or updating.
+- **Verbose and Dry Run Modes**: Detailed logs and simulation of write operations.
+- **Flexible Input Formats**: Supports JSON, JSONL, and automatic format detection.
+- **Timestamp and Geopoint Conversion**: Automatically convert timestamps and geopoints to and from Firestore specific types.
+- **List Collections**: List all top-level Firestore collections.
 
 ## Installation
 
-Before you can use Firebatch, ensure you have Python installed on your machine and then install it using pip:
+Ensure Python is installed, then install Firebatch. To include validation features, install with the `validation` option:
 
 ```sh
 pip install firebatch
+# With validation support
+pip install firebatch[validation]
 ```
 
 ## Usage
-
-Below are examples of how to use Firebatch for different operations:
 
 ### Reading Documents
 
@@ -39,13 +40,15 @@ firebatch read --collection users/user_id/orders --format jsonl --raw --verbose
 
 This command downloads documents from the specified collection path in raw mode. When the --raw flag is used, the output JSON will not include the document IDs or any additional metadata, only the document data.
 
+Fetch documents with conditions, ordering, and limit. Supports `--timestamp-convert` and `--geopoint-convert` for converting Firestore types.
+
 ### Writing Documents
 
 ```sh
-firebatch write --collection users/user_id/orders --timestamp-field created_at --format jsonl --verbose --dry-run < data.jsonl
+firebatch write --collection users/user_id/orders --timestamp-field created_at --format auto --verbose --dry-run < data.jsonl
 ```
 
-This command uploads documents to the specified collection. The `--timestamp-field` option adds a server timestamp to the specified field. The `--dry-run` flag simulates the write operation without committing changes to the database.
+Batch upload documents with server timestamps. The `--format auto` option detects the input format.
 
 ### Updating Documents
 
@@ -53,32 +56,40 @@ This command uploads documents to the specified collection. The `--timestamp-fie
 firebatch update --collection users/user_id/orders --validator my_validators:MyValidatorClass --timestamp-field updated_at --upsert --verbose --dry-run updates.jsonl
 ```
 
-This command updates documents in the specified collection with the provided updates. It can validate the data using a Pydantic model and update the timestamp field. The `--upsert` flag allows inserting documents if they do not exist.
+Update documents with data validation and timestamp updates. The `--upsert` flag allows inserting missing documents.
 
 ### Deleting Documents
 
 ```sh
-firebatch delete --collection users/user_id/orders --doc-ids "doc1 doc2 doc3" --verbose --dry-run
+firebatch delete --collection users/user_id/orders --verbose --dry-run
 ```
 
-This command deletes documents with the specified IDs from the collection. If a file with document IDs is provided instead of `--doc-ids`, it will process the file and delete the corresponding documents.
+Delete documents by IDs or recursively delete all documents in a collection, including subcollections.
+
+### Listing Collections
+
+```sh
+firebatch list
+```
+
+List all top-level Firestore collections.
 
 ## Configuration
 
-To use Firebatch, you'll need to authenticate with Google Cloud Firestore. Either login with:
+To use Firebatch, authenticate with Google Cloud Firestore by logging in or setting up your service account key:
 
 ```sh
 gcloud auth application-default login --no-launch-browser
-```
-
-or set up your Google Cloud credentials by exporting the path to your service account key:
-
-```sh
+# Or
 export GOOGLE_APPLICATION_CREDENTIALS="path/to/your/service-account-key.json"
 ```
 
-Alternatively, if running in a Google Cloud environment, Firebatch will use the default service account
+Firebatch requires initialization of a Firestore client for operations.
 
 ## Contributing
- 
-Contributions to Firebatch are welcome! Please feel free to open issues or submit pull requests on the GitHub repository.
+
+Contributions are welcome! Feel free to open issues or submit pull requests on the GitHub repository.
+
+---
+
+This updated README provides a comprehensive overview of Firebatch's capabilities, reflecting the enhancements and new features introduced in the code.
