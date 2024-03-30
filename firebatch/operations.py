@@ -6,6 +6,7 @@ from tqdm import tqdm
 from firebatch.endcoding import convert_to_firestore_types, to_json
 from firebatch.utils import get_nested_collection_reference, read_documents
 from firebatch.firestore_client import initialize_firestore_client
+from google.api_core.exceptions import NotFound
 from google.cloud.firestore import SERVER_TIMESTAMP
 import logging
 logger = logging.getLogger(__name__)
@@ -164,35 +165,39 @@ def update_documents_in_firestore(collection_path: str,
         sys.stderr.write(f"Error duplicate keys: {duplicates}")
         sys.exit(1)
 
-    with tqdm(total=len(updates), desc="Updating documents", disable=not verbose) as pbar:
-        for update in updates:
-            doc_id = update.get("__doc_id__")
-            data = update.get("__data__")
-            if not doc_id or not data:
-                continue  # Skip if no document ID or data
+    try:
 
-            data = convert_to_firestore_types(db, data, timestamp_convert, geopoint_convert) 
+        with tqdm(total=len(updates), desc="Updating documents", disable=not verbose) as pbar:
+            for update in updates:
+                doc_id = update.get("__doc_id__")
+                data = update.get("__data__")
+                if not doc_id or not data:
+                    continue  # Skip if no document ID or data
 
-            if timestamp_field:
-                data[timestamp_field] = SERVER_TIMESTAMP
+                data = convert_to_firestore_types(db, data, timestamp_convert, geopoint_convert) 
 
-            doc_ref = collection_ref.document(doc_id)
-            if upsert:
-                batch.set(doc_ref, data, merge=True) 
-            else:
-                batch.update(doc_ref, data)
+                if timestamp_field:
+                    data[timestamp_field] = SERVER_TIMESTAMP
 
-            if pbar.n % 500 == 0 and not dry_run:  # Firestore batch limit
+                doc_ref = collection_ref.document(doc_id)
+                if upsert:
+                    batch.set(doc_ref, data, merge=True) 
+                else:
+                    batch.update(doc_ref, data)
+
+                if pbar.n % 500 == 0 and not dry_run:  # Firestore batch limit
+                    batch.commit()
+                    batch = db.batch()  # Start a new batch after committing
+                
+                pbar.update(1)
+
+            if not dry_run and pbar.n % 500 != 0:  # Commit any remaining documents
                 batch.commit()
-                batch = db.batch()  # Start a new batch after committing
-            
-            pbar.update(1)
 
-        if not dry_run and pbar.n % 500 != 0:  # Commit any remaining documents
-            batch.commit()
-
-        if verbose:
-            logging.info(f"Batch updated {pbar.n} documents in '{collection_path}'.")
+            if verbose:
+                logging.info(f"Batch updated {pbar.n} documents in '{collection_path}'.")
+    except NotFound as ex:
+        raise Exception(f"{str(ex)} ... you can resolve this by using the --upsert flag to insert missing keys.")
 
 def list_firestore_collections():
     db = initialize_firestore_client()  # Make sure this function returns a Firestore client instance.
