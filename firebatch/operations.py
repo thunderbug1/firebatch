@@ -31,6 +31,8 @@ def download_collection_documents(collection_path: str,
     
     for field, operator, value in conditions:
         logger.debug(f"apply conditions: {conditions}")
+        if value.lower() == "null" or value.lower() == "none":
+            value = None
         query_ref = query_ref.where(field, operator, value)
 
     if order_by:
