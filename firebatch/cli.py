@@ -99,7 +99,7 @@ def read(collection, format, timestamp_convert, geopoint_convert, where, order_b
                                                    limit=limit, 
                                                    raw=raw, 
                                                    verbose=verbose)
-    print(read_documents)
+    print(read_documents, end='')
 
 @cli.command(cls=StdCommand)
 @click.option('--timestamp-field', default=None, help='name of the field to set a server timestamp of insertion.')
