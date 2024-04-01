@@ -4,7 +4,7 @@ from typing import Any, Dict, List, Optional, TextIO, Tuple
 from tqdm import tqdm
 
 from firebatch.endcoding import convert_to_firestore_types, to_json
-from firebatch.utils import get_nested_collection_reference, read_documents
+from firebatch.utils import get_query_reference, read_documents
 from firebatch.firestore_client import initialize_firestore_client
 from google.api_core.exceptions import NotFound
 from google.cloud.firestore import SERVER_TIMESTAMP
@@ -17,6 +17,7 @@ def print_verbose(message: str, verbose: bool):
         logger.info(message)
 
 def download_collection_documents(collection_path: str, 
+                                  collection_group: bool,
                                   output_format: str = 'jsonl', 
                                   timestamp_convert: bool = False, 
                                   geopoint_convert: bool = False,
@@ -27,7 +28,7 @@ def download_collection_documents(collection_path: str,
                                   verbose: bool = False):
 
     db = initialize_firestore_client()
-    query_ref = get_nested_collection_reference(db, collection_path)
+    query_ref = get_query_reference(db, collection_path, collection_group)
     
     for field, operator, value in conditions:
         logger.debug(f"apply conditions: {conditions}")
@@ -61,7 +62,7 @@ def write_documents(collection_path: str,
                     verbose: bool = False, 
                     dry_run: bool = False):
     db = initialize_firestore_client()
-    collection_ref = get_nested_collection_reference(db, collection_path)
+    collection_ref = get_query_reference(db, collection_path)
     batch = db.batch()
 
     documents = read_documents(file)
@@ -112,7 +113,7 @@ def delete_collection_recursive(collection_ref, batch_size=10):
 
 def delete_documents_in_firestore(collection_path: str, doc_ids: List[str], verbose: bool = False, dry_run: bool = False):
     db = initialize_firestore_client()
-    collection_ref = get_nested_collection_reference(db, collection_path)
+    collection_ref = get_query_reference(db, collection_path)
 
     with tqdm(total=len(doc_ids), disable=not verbose, desc="Deleting documents") as pbar:
         for doc_id in doc_ids:
@@ -150,7 +151,7 @@ def update_documents_in_firestore(collection_path: str,
                                   dry_run: bool = False):
     db = initialize_firestore_client()
     batch = db.batch()
-    collection_ref = get_nested_collection_reference(db, collection_path)
+    collection_ref = get_query_reference(db, collection_path)
 
     # First, check for duplicate keys in the updates
     seen_doc_ids = set()

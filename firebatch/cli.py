@@ -81,6 +81,7 @@ firebatch [OPTIONS] COMMAND [ARGS]...
     pass
 
 @cli.command(cls=StdCommand)
+@click.option('--collection-group', '-cg', is_flag=True, default=False, help='Treat the collection name as a collection group name for a collection group query.')
 @click.option('--format', '-f', type=click.Choice(['json', 'jsonl']), default='jsonl', help='Output format for reading documents.')
 @click.option('--timestamp-convert', '-t', is_flag=True, help='convert firestore timestamps to simple datetime string in isoformat, otherwise the value will be wrapped with the key __timestamp__ for converting it back when writing.')
 @click.option('--geopoint-convert', '-g', is_flag=True, help='convert geopoints to simple map with longitude and latitude, otherwise the values will be wrapped with the key __geopoint__ for converting it back when writing.')
@@ -88,9 +89,10 @@ firebatch [OPTIONS] COMMAND [ARGS]...
 @click.option('--where', '-w', multiple=True, callback=validate_queries, help='Query conditions (can specify multiple), formatted as "field operator value".')
 @click.option('--order-by', help='Field to order the results by.')
 @click.option('--limit', type=int, help='Limit the number of results.')
-def read(collection, format, timestamp_convert, geopoint_convert, where, order_by, limit, verbose, raw, dry_run):
+def read(collection, collection_group, format, timestamp_convert, geopoint_convert, where, order_by, limit, verbose, raw, dry_run):
     """read documents from firestore and print them. By default it wraps every document with its id (needed by other commands). If the --raw flag is used then the documents are not wrapped."""
     read_documents = download_collection_documents(collection_path=collection, 
+                                                   collection_group=collection_group,
                                                    output_format=format,
                                                    timestamp_convert=timestamp_convert,
                                                    geopoint_convert=geopoint_convert,

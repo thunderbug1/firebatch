@@ -39,16 +39,19 @@ def read_documents(file: TextIO, format="auto"):
     elif format == "jsonl":
         return read_jsonl(file)
     
-def get_nested_collection_reference(db: Client, collection_path: str):
-    # Splits the collection path and returns the final reference
-    ref = db
-    parts = collection_path.split('/')
-    for i, part in enumerate(parts):
-        if i % 2 == 0:
-            ref = ref.collection(part)
-        else:
-            ref = ref.document(part)
-    return ref
+def get_query_reference(db: Client, collection_path: str, collection_group=False):
+    if collection_group:
+        return db.collection_group(collection_path)
+    else:
+        # Existing logic for navigating collection/document paths
+        ref = db
+        parts = collection_path.split('/')
+        for i, part in enumerate(parts):
+            if i % 2 == 0:
+                ref = ref.collection(part)
+            else:
+                ref = ref.document(part)
+        return ref
 
 def parse_query_condition(condition: str) -> Tuple[str, str, Any]:
     """Parses a query condition, allowing spaces around operators and handling quoted strings as values."""
