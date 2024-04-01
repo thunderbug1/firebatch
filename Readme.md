@@ -50,8 +50,8 @@ Install Firebatch using pip:
 pip install firebatch
 # For additional validation support:
 pip install firebatch[validation]
-## Enhanced Example Workflows
 ```
+## Examples
 
 ### Workflow 1: Geotagging User Posts
 
@@ -97,7 +97,7 @@ Imagine you have feedback stored in multiple collections (e.g., `feedback_2023`,
 2. **Optionally process the feedback data** to fit the new unified format.
 3. **Batch upload the consolidated feedback** to a new `unified_feedback` collection:
    ```sh
-   firebatch write --collection unified_feedback --format jsonl --verbose < all_feedback.jsonl
+   firebatch write --collection unified_feedback --format jsonl --verbose all_feedback.jsonl
    ```
 
 ---
