@@ -1,95 +1,111 @@
-# Firebatch
+```markdown
+<a href="https://www.buymeacoffee.com/thinx" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/default-orange.png" alt="Buy Me A Coffee" style="height: 41px !important;width: 174px !important;" ></a>
 
-Firebatch is a command-line interface (CLI) tool designed for batch CRUD (Create, Read, Update, Delete) operations on Firestore collections. It provides extensive support for downloading documents, batch uploading, deleting documents, updating records, and more, with advanced features such as data validation, conversion of Firestore specific types, and handling of subcollections.
+> :coffee: **Open-source tools thrive on caffeine. If you like this project, please consider supporting it.**
 
-## Features
+# Firebatch: Advanced Firestore CLI Tool
 
-- **Read/Download**: Fetch documents with optional query conditions, ordering, and limits. Supports raw mode and conversion for Firestore timestamps and geopoints.
-- **Write**: Batch upload with support for server timestamps, automatic format detection, and conversion for Firestore timestamps and geopoints.
-- **Update**: Batch updates with optional upsert functionality. Supports validation using custom Pydantic models.
-- **Delete**: Batch delete documents, including recursive deletion of subcollections.
-- **Validation**: Optionally validate documents using Pydantic models before writing or updating.
-- **Verbose and Dry Run Modes**: Detailed logs and simulation of write operations.
-- **Flexible Input Formats**: Supports JSON, JSONL, and automatic format detection.
-- **Timestamp and Geopoint Conversion**: Automatically convert timestamps and geopoints to and from Firestore specific types.
-- **List Collections**: List all top-level Firestore collections.
+Firebatch streamlines batch operations on Firestore, offering developers a robust CLI tool for managing Google Firestore databases. It simplifies CRUD operations, supports advanced data type conversions, and facilitates efficient data manipulation directly from your command line.
 
-## Installation
+## Key Features
 
-Ensure Python is installed, then install Firebatch. To include validation features, install with the `validation` option:
+### Read/Download
+Fetch documents with customizable query conditions, ordering, and limits. Supports raw mode and Firestore type conversions.
 
-```sh
-pip install firebatch
-# With validation support
-pip install firebatch[validation]
-```
+### Write
+Batch upload documents with server timestamp support and automatic format detection.
 
-## Usage
+### Update
+Perform batch updates with upsert functionality and optional data validation.
 
-### Reading Documents
+### Delete
+Bulk delete documents, with support for recursive subcollection deletion.
 
-```sh
-firebatch read --collection users/user_id/orders --format jsonl --where "status == completed" --order-by created_at --limit 10 --verbose
-```
+### Validation
+Validate documents against custom Pydantic models before writing or updating.
 
-This command downloads documents from the specified collection path, applying the query conditions, ordering the results, and limiting the output.
+### Verbose and Dry Run Modes
+Enable detailed operation logs and simulate write operations without database changes.
 
-```sh
-firebatch read --collection users/user_id/orders --format jsonl --raw --verbose  
- ```
+### Flexible Input Formats
+Supports JSON, JSONL, and auto-detects input data formats.
 
-This command downloads documents from the specified collection path in raw mode. When the --raw flag is used, the output JSON will not include the document IDs or any additional metadata, only the document data.
+### Timestamp and Geopoint Conversion
+Automatically converts Python datetime and geopoint data to Firestore's Timestamp and GeoPoint types.
 
-Fetch documents with conditions, ordering, and limit. Supports `--timestamp-convert` and `--geopoint-convert` for converting Firestore types.
+### Collection Group Queries
+Query across all collections with the same name, regardless of their database location.
 
-### Writing Documents
-
-```sh
-firebatch write --collection users/user_id/orders --timestamp-field created_at --format auto --verbose --dry-run < data.jsonl
-```
-
-Batch upload documents with server timestamps. The `--format auto` option detects the input format.
-
-### Updating Documents
-
-```sh
-firebatch update --collection users/user_id/orders --validator my_validators:MyValidatorClass --timestamp-field updated_at --upsert --verbose --dry-run updates.jsonl
-```
-
-Update documents with data validation and timestamp updates. The `--upsert` flag allows inserting missing documents.
-
-### Deleting Documents
-
-```sh
-firebatch delete --collection users/user_id/orders --verbose --dry-run
-```
-
-Delete documents by IDs or recursively delete all documents in a collection, including subcollections.
-
-### Listing Collections
-
-```sh
-firebatch list
-```
-
-List all top-level Firestore collections.
-
-## Configuration
-
-To use Firebatch, authenticate with Google Cloud Firestore by logging in or setting up your service account key:
-
-```sh
-gcloud auth application-default login --no-launch-browser
-# Or
-export GOOGLE_APPLICATION_CREDENTIALS="path/to/your/service-account-key.json"
-```
-
-Firebatch requires initialization of a Firestore client for operations.
-
-## Contributing
-
-Contributions are welcome! Feel free to open issues or submit pull requests on the GitHub repository.
+### List Collections
+Quickly list all top-level collections in your Firestore database.
 
 ---
 
-This updated README provides a comprehensive overview of Firebatch's capabilities, reflecting the enhancements and new features introduced in the code.
+## Installation
+
+> :warning: **Ensure you have Python 3.6 or newer installed before proceeding.**
+
+Install Firebatch using pip:
+
+```sh
+pip install firebatch
+# For additional validation support:
+pip install firebatch[validation]
+## Enhanced Example Workflows
+```
+
+### Workflow 1: Geotagging User Posts
+
+Suppose you want to add location data to user posts that lack this information. You can use Firebatch to read, update, and validate geopoint data in bulk.
+
+1. **Export posts lacking geotags** to a JSONL file for review:
+   ```sh
+   firebatch read --collection posts --where "location == null" --format jsonl > posts_without_geotags.jsonl
+   ```
+2. **Manually add geotags** to the posts in `posts_without_geotags.jsonl` using your preferred text editor or a script.
+3. **Validate and update posts** with geopoint conversion enabled to ensure data integrity:
+   ```sh
+   firebatch update --collection posts --geopoint-convert --validator my_validators:PostValidator --verbose updates_with_geotags.jsonl
+   ```
+
+### Workflow 2: Archiving Old Orders
+
+For orders older than a year, you might want to move them to an archive collection to keep your active orders collection lean and performant.
+
+1. **Identify and export old orders** using timestamp conversion to detect dates properly:
+   ```sh
+   firebatch read --collection orders --where "date < 2023-01-01" --timestamp-convert --format jsonl --verbose > old_orders.jsonl
+   ```
+2. **Review the exported data** to ensure accuracy.
+3. **Import old orders into the archive** with automatic timestamp updates:
+   ```sh
+   firebatch write --collection archived_orders --timestamp-field archived_at --timestamp-convert --format jsonl --verbose < old_orders.jsonl
+   ```
+4. **Delete the original old orders** after confirming the archive's integrity (use dry-run mode first for safety):
+   ```sh
+   firebatch delete --collection orders --verbose --dry-run old_orders.jsonl
+   ```
+   After verification, remove `--dry-run` to proceed with deletion.
+
+### Workflow 3: Consolidating User Feedback
+
+Imagine you have feedback stored in multiple collections (e.g., `feedback_2023`, `feedback_2024`) and you want to consolidate all feedback into a single collection for easier analysis.
+
+1. **Perform collection group queries** to fetch all feedback documents:
+   ```sh
+   firebatch read --collection feedback --collection-group --format jsonl --verbose > all_feedback.jsonl
+   ```
+2. **Optionally process the feedback data** to fit the new unified format.
+3. **Batch upload the consolidated feedback** to a new `unified_feedback` collection:
+   ```sh
+   firebatch write --collection unified_feedback --format jsonl --verbose < all_feedback.jsonl
+   ```
+
+---
+
+## Contributing
+
+> :heart: **Your contributions make Firebatch better.**
+
+Report bugs, suggest enhancements, or submit pull requests on our GitHub repository. Join our community to make Firestore more accessible and efficient for developers worldwide.
+```
