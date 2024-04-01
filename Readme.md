@@ -1,4 +1,3 @@
-```markdown
 <a href="https://www.buymeacoffee.com/thinx" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/default-orange.png" alt="Buy Me A Coffee" style="height: 41px !important;width: 174px !important;" ></a>
 
 > :coffee: **Open-source tools thrive on caffeine. If you like this project, please consider supporting it.**
@@ -108,4 +107,3 @@ Imagine you have feedback stored in multiple collections (e.g., `feedback_2023`,
 > :heart: **Your contributions make Firebatch better.**
 
 Report bugs, suggest enhancements, or submit pull requests on our GitHub repository. Join our community to make Firestore more accessible and efficient for developers worldwide.
-```
