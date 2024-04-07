@@ -44,7 +44,13 @@ def download_collection_documents(collection_path: str,
     if raw:
         documents = [doc.to_dict() for doc in tqdm(query_ref.stream(), desc="Downloading documents", disable=not verbose)]
     else:
-        documents = [{"__doc_id__": doc.id, "__data__": doc.to_dict()} for doc in tqdm(query_ref.stream(), desc="Downloading documents", disable=not verbose)]
+        if collection_group:
+            def doc_to_document(doc):
+                return {"__doc_id__": doc.id, "__doc_path__": doc.reference.path, "__data__": doc.to_dict()}
+        else:
+            def doc_to_document(doc):
+                return {"__doc_id__": doc.id, "__data__": doc.to_dict()}
+        documents = [doc_to_document(doc) for doc in tqdm(query_ref.stream(), desc="Downloading documents", disable=not verbose)]
 
     print_verbose(f"Retrieved {len(documents)} documents from '{collection_path}'.", verbose)
     
