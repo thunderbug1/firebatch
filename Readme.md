@@ -6,6 +6,8 @@
 
 Firebatch streamlines batch operations on Firestore, offering developers a robust CLI tool for managing Google Firestore databases. It simplifies CRUD operations, supports advanced data type conversions, and facilitates efficient data manipulation directly from your command line.
 
+> :warning: **The usage of Firebatch counts towards your read and write quota, use cautiously with large databases.**
+
 ## Key Features
 
 ### Read/Download
